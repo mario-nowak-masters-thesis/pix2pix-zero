@@ -10,6 +10,7 @@ from diffusers.pipelines.stable_diffusion import StableDiffusionPipelineOutput
 sys.path.insert(0, "src/utils")
 from base_pipeline import BasePipeline
 from cross_attention import prep_unet
+from PIL import Image
 
 
 if torch.cuda.is_available():
@@ -42,6 +43,18 @@ class DDIMInversion(BasePipeline):
         _mu = x.mean()
         _var = x.var()
         return _var + _mu**2 - 1 - torch.log(_var+1e-7)
+
+
+    def encode(self, image: Image) -> torch.Tensor:
+        # Encode the input image with the first stage model
+        x0 = np.array(image) / 255
+        x0 = torch.from_numpy(x0).type(torch.float32).permute(2, 0, 1).unsqueeze(dim=0).repeat(1, 1, 1, 1).to(device)
+        x0 = (x0 - 0.5) * 2.
+        with torch.no_grad():
+            x0_enc = self.vae.encode(x0).latent_dist.sample().to(device, torch.float32)
+        latents = x0_enc = 0.18215 * x0_enc 
+
+        return latents.detach().clone()
 
 
     def __call__(
