@@ -172,7 +172,7 @@ class EditingPipeline(BasePipeline):
         image = self.decode_latents(latents.detach())
 
         # 9. Run safety checker
-        image, has_nsfw_concept = self.run_safety_checker(image, device, prompt_embeds.dtype)
+        # image, has_nsfw_concept = self.run_safety_checker(image, device, prompt_embeds.dtype)
 
         # 10. Convert to PIL
         image_edit = self.numpy_to_pil(image)
