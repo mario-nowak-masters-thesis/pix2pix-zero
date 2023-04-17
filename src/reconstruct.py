@@ -22,8 +22,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--inversion', required=True)
     parser.add_argument('--prompt', type=str, required=True)
-    parser.add_argument('--task_name', type=str, default='cat2dog')
-    parser.add_argument('--results_folder', type=str, default='output/test_cat')
+    parser.add_argument('--results_folder', type=str, default='output/merging_test_cat_dog')
     parser.add_argument('--num_ddim_steps', type=int, default=50)
     parser.add_argument('--model_path', type=str, default='CompVis/stable-diffusion-v1-4')
     parser.add_argument('--xa_guidance', default=0.1, type=float)
@@ -32,7 +31,6 @@ if __name__=="__main__":
 
     args = parser.parse_args()
 
-    os.makedirs(os.path.join(args.results_folder, "edit"), exist_ok=True)
     os.makedirs(os.path.join(args.results_folder, "reconstruction"), exist_ok=True)
 
     if args.use_float_16:
@@ -57,15 +55,14 @@ if __name__=="__main__":
 
     for inv_path, prompt_path in zip(l_inv_paths, l_prompt_paths):
         prompt_str = open(prompt_path).read().strip()
-        rec_pil, edit_pil = pipe(prompt_str,
+        rec_pil = pipe(prompt_str,
                 num_inference_steps=args.num_ddim_steps,
                 x_in=torch.load(inv_path).unsqueeze(0),
-                edit_dir=construct_direction(args.task_name),
                 guidance_amount=args.xa_guidance,
                 guidance_scale=args.negative_guidance_scale,
-                negative_prompt=prompt_str # use the unedited prompt for the negative prompt
+                negative_prompt=prompt_str, # use the unedited prompt for the negative prompt
+                only_sample=True,
         )
         
         bname = os.path.basename(args.inversion).split(".")[0]
-        edit_pil[0].save(os.path.join(args.results_folder, f"edit/{bname}.png"))
         rec_pil[0].save(os.path.join(args.results_folder, f"reconstruction/{bname}.png"))

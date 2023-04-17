@@ -20,6 +20,7 @@ else:
 def make_output_folders(args: argparse.Namespace) -> None:
     os.makedirs(os.path.join(args.results_folder, "merged_inversion"), exist_ok=True)
     os.makedirs(os.path.join(args.results_folder, "merged_inversion_image"), exist_ok=True)
+    os.makedirs(os.path.join(args.results_folder, "individual_inversion_images"), exist_ok=True)
     os.makedirs(os.path.join(args.results_folder, "prompt"), exist_ok=True)
 
 
@@ -48,7 +49,7 @@ if __name__=="__main__":
     parser.add_argument('--upper_input_image', type=str, default='assets/test_images/cats/cat_5.png')
     parser.add_argument('--lower_input_image', type=str, default='assets/test_images/dogs/dog_1.png')
     parser.add_argument('--results_folder', type=str, default='output/merging_test_cat_dog')
-    parser.add_argument('--num_ddim_steps', type=int, default=50)
+    parser.add_argument('--num_ddim_steps', type=int, default=20)
     parser.add_argument('--model_path', type=str, default='CompVis/stable-diffusion-v1-4')
     parser.add_argument('--use_float_16', action='store_true')
     parser.add_argument('--out_file_name', type=str)
@@ -75,14 +76,14 @@ if __name__=="__main__":
     lower_image = load_image(args.lower_input_image)
     prompt = "an image"
 
-    inverted_upper_image, _, _ = ddim_inversion_pipe(
+    inverted_upper_image_tensor, inverted_upper_images, _ = ddim_inversion_pipe(
         img=upper_image,
         prompt=prompt, 
         guidance_scale=1,
         num_inversion_steps=args.num_ddim_steps,
         torch_dtype=torch_dtype
     )
-    inverted_lower_image, _, _ = ddim_inversion_pipe(
+    inverted_lower_image_tensor, inverted_lower_images, _ = ddim_inversion_pipe(
         img=lower_image,
         prompt=prompt, 
         guidance_scale=1,
@@ -90,7 +91,7 @@ if __name__=="__main__":
         torch_dtype=torch_dtype
     )
 
-    merged_image = merge_image_tensors(inverted_upper_image, inverted_lower_image).squeeze(dim=0)
+    merged_image = merge_image_tensors(inverted_upper_image_tensor, inverted_lower_image_tensor).squeeze(dim=0)
 
     # save the inversion
     make_output_folders(args)
@@ -100,8 +101,18 @@ if __name__=="__main__":
 
     torch.save(merged_image, os.path.join(args.results_folder, f"merged_inversion/{output_file_name}.pt"))
 
-    # save the image 
-    # x_inv_image[0].save(os.path.join(args.results_folder, f"merged_inversion_image/{output_file_name}.png"))
+    # decoded_merged_image = ddim_inversion_pipe.decode_latents(merged_image.detach())
+    # image = ddim_inversion_pipe.numpy_to_pil(decoded_merged_image)
+    # image.save(
+    #     os.path.join(args.results_folder, f"merged_inversion_image/{output_file_name}-inversion.png")
+    # )
+
+    inverted_upper_images[0].save(
+        os.path.join(args.results_folder, f"individual_inversion_images/{upper_image_base_name}-inversion.png")
+    )
+    inverted_lower_images[0].save(
+        os.path.join(args.results_folder, f"individual_inversion_images/{lower_image_base_name}-inversion.png")
+    )
 
     # save the prompt string
     with open(os.path.join(args.results_folder, f"prompt/{output_file_name}.txt"), "w") as f:
