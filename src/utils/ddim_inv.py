@@ -76,7 +76,7 @@ class DDIMInversion(BasePipeline):
         lambda_kl: float = 20.0,
         num_reg_steps: int = 5,
         num_ac_rolls: int = 5,
-    ):
+    ) -> tuple[torch.Tensor, list[Image.Image], list[Image.Image]]:
         
         # 0. modify the unet to be useful :D
         self.unet = prep_unet(self.unet)
